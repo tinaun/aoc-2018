@@ -11,3 +11,4 @@ pub use std::fmt::{self, Display};
 pub use serde_derive::{Serialize, Deserialize};
 
 pub use serde_scan::from_str as scan;
+pub use serde_scan::scan as s;

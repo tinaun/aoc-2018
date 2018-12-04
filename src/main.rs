@@ -4,61 +4,59 @@
 mod prelude;
 use self::prelude::*;
 
+#[derive(Debug, Deserialize)]
+struct Claim {
+    id: u32,
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+}
+
 fn main() {
     let demo = include_str!("../demo.txt");
     let input = include_str!("../input.txt");
     let mut count = 0;
+    let mut claims = vec![vec![0; 1000]; 1000];
 
-    let mut twice = 0;
-    let mut thrice = 0;
     for l in input.lines() {
-        let mut t = Map::new();
-        for x in l.chars() {
-            *t.entry(x).or_insert(0) += 1;
-        }
+        let c: Claim = s!("#{} @ {},{}: {}x{}" <- l).unwrap();
 
-        for (k, v) in &t {
-            if *v == 2 {
-                twice += 1;
-                break;
+        //let c = dbg!(c);
+
+        for x in c.x..(c.x+c.width) {
+            for y in c.y..(c.y+c.height) {
+                claims[y as usize][x as usize] += 1;
             }
         }
 
-        for (k, v) in &t {
-            if *v == 3 {
-                thrice += 1;
-                break;
+    }
+
+    for x in &claims {
+        for y in x {
+            if *y > 1 {
+                count += 1;
+            }
+            //print!("{}", y);
+        }
+        //println!("")
+    }
+
+    dbg!(count);
+
+    'recheck: for l in input.lines() {
+        let c: Claim = s!("#{} @ {},{}: {}x{}" <- l).unwrap();
+
+        //dbg!(c);
+
+        for x in c.x..(c.x+c.width) {
+            for y in c.y..(c.y+c.height) {
+                if claims[y as usize][x as usize] != 1 {
+                    continue 'recheck;
+                }
             }
         }
-    }
 
-    println!("p1: {}", twice * thrice);
-
-    fn check(a: &str, b: &str) -> Option<String> {
-        if a == b {
-            return None;
-        }
-        let mut once = None;
-        let mut res = String::new();
-        for (i, (x, y)) in a.chars().zip(b.chars()).enumerate() {
-            if x != y && once.is_none() {
-                once = Some(());
-            } else if x != y {
-                return None;
-            } else {
-                res.push(x);
-            }
-        }
-
-        once.map(|_| res)
-    }
-
-
-    for (x, y) in input.lines().tuple_combinations() {
-        if let Some(ans) = check(&x, y) {
-            println!("p2: {}", ans);
-        }
-    }
-
-
+        dbg!(c.id);
+    }    
 }
