@@ -12,3 +12,16 @@ pub use serde_derive::{Serialize, Deserialize};
 
 pub use serde_scan::from_str as scan;
 pub use serde_scan::scan as s;
+
+pub fn count<I, T>(iter: I) -> Map<T, usize> 
+    where I: IntoIterator<Item = T>,
+          T: std::hash::Hash + Eq,
+{
+    let mut map = Map::new();
+
+    for item in iter {
+        *map.entry(item).or_insert(0) += 1;
+    }
+
+    map
+}
