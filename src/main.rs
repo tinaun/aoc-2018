@@ -30,7 +30,7 @@ fn main() {
 
         if let [ts, rest] = l.split("] ").collect::<Vec<_>>().as_slice() {
             let ts: TS = s!("[{}-{}-{} {}:{}" <- ts).unwrap();
-            let next: Option<u32> = serde_scan::from_str_skipping("Guard#", rest).ok();
+            let next: Option<u32> = s!("Guard #{}" <- rest).ok();
             if next.is_some() {
                 current_guard = next;
             }                
