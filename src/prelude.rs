@@ -2,8 +2,8 @@
 pub use itertools::Itertools;
 pub use permutohedron::LexicalPermutation;
 
-pub use std::collections::HashSet as Set;
-pub use std::collections::HashMap as Map;
+pub use std::collections::BTreeSet as Set;
+pub use std::collections::BTreeMap as Map;
 
 pub use std::io;
 pub use std::fmt::{self, Display};
@@ -15,7 +15,7 @@ pub use serde_scan::scan as s;
 
 pub fn count<I, T>(iter: I) -> Map<T, usize> 
     where I: IntoIterator<Item = T>,
-          T: std::hash::Hash + Eq,
+          T: Ord + Eq,
 {
     let mut map = Map::new();
 
