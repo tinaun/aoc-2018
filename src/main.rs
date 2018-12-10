@@ -3,54 +3,52 @@
 mod prelude;
 use self::prelude::*;
 
-use std::collections::VecDeque;
+use doubly::DoublyLinkedList as LL;
 
-fn count_metadata(mut i: VecDeque<i32>, is_part_1: bool) -> (i32, VecDeque<i32>) {
-    let mut nodes = i.pop_front().unwrap();
-    let mut metadata = i.pop_front().unwrap();
-    let mut sum = 0;
-    let mut inner_nodes = vec![];
+fn solve(players: usize, lines: u64) -> u64 {
+    let mut players = vec![0; players];
+    let mut p_idx = 0;
 
-    while nodes > 0 {
-        let (inner, next) = count_metadata(i, is_part_1);
-        i = next;
-        inner_nodes.push(inner);
-        nodes -= 1;
-    }
+    let mut circle = LL::new();
+    circle.push_front(0);
+    let mut idx = 0;
 
-    if is_part_1 {
-        sum = inner_nodes.iter().sum();
-    }
-    
-    while metadata > 0 {
-        let node = i.pop_front().unwrap() as usize;
-        
-        if inner_nodes.len() == 0 || is_part_1 {
-            sum += node as i32;
+    for i in 1..=lines {
+        if i % 23 == 0 {
+            idx += (circle.len() - 7);
+
+            idx %= circle.len();
+
+            let next = circle.remove(idx+1);
+            players[p_idx] += i + next;
+
+            //println!("added {} + {} {} to {}", next, i, (next+i), p_idx); 
+            
+            idx %= circle.len();
         } else {
-            sum += inner_nodes.get(node - 1).cloned().unwrap_or(0);
+            idx += 2;
+            idx %= circle.len();
+
+            circle.insert(idx+1, i);
+            
         }
-        metadata -= 1;
+
+        p_idx += 1;
+        p_idx %= players.len();
+        //println!("{:?}", circle);        
     }
 
-    (sum, i)
-}
-
-fn p1(input: &VecDeque<i32>) -> i32 {
-    count_metadata(input.clone(), true).0
-}
-
-fn p2(input: &VecDeque<i32>) -> i32 {
-    count_metadata(input.clone(), false).0
+    players.into_iter().max().unwrap_or(0)
 }
 
 fn main() {
     let demo = include_str!("../demo.txt");
     let input = include_str!("../input.txt");
     
-    let entries = scan(input).unwrap();
 
-    dbg!(p1(&entries));
-    dbg!(p2(&entries));
+    println!("p1: {}", solve(428, 70825));
+    println!("p2: {}", solve(428, 7082500));
+    
+    
 
 }

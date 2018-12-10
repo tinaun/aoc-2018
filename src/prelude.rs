@@ -4,6 +4,7 @@ pub use permutohedron::LexicalPermutation;
 
 pub use std::collections::BTreeSet as Set;
 pub use std::collections::BTreeMap as Map;
+use std::collections::VecDeque;
 
 pub use std::io;
 pub use std::fmt::{self, Display};
