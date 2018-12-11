@@ -25,8 +25,6 @@ impl Star {
 }
 
 fn distance_from_center(starfield: &[Star]) -> u64 {
-    let l = starfield.len() as i64;
-    
     let center = starfield.iter().fold((0, 0), |acc, next| {
         (acc.0 + next.p.0, acc.1 + next.p.1)
     });
