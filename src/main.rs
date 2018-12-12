@@ -3,93 +3,69 @@
 mod prelude;
 use self::prelude::*;
 
-#[derive(Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord)]
-struct Star {
-    p: (i64, i64),
-    v: (i64, i64),
+fn power_level(x: u32, y: u32, id: u32) -> i32 {
+    let rid = x + 10;
+    let mut power = rid * y;
+    power += id;
+    power *= rid;
+    power /= 100;
+    power %= 10;
+
+    power as i32 - 5
 }
 
-impl Star {
-    fn step(&mut self) {
-        self.p.0 += self.v.0;
-        self.p.1 += self.v.1;
+fn grid_size(s: usize, id: u32) -> (usize, usize, i32) {
+    let mut grid = vec![0; 300 * 300];
+
+    for y in 1..=300 {
+        for x in 1..=300 {
+            grid[300 * (y-1) + (x-1)] = power_level(x as u32, y as u32, id);
+        }
     }
 
-    fn distance_from(&self, other: (i64, i64)) -> u64 {
-        let x = self.p.0 - other.0;
-        let y = self.p.1 - other.1;
-        let s =  x*x + y*y;
-
-        (s as f64).sqrt() as u64
+    let mut max = 0;
+    let mut max_pos = (0, 0);
+    
+    for y in 1..300-s {
+        for x in 1..300-s {
+            let mut next = 0;
+            for y in y..y+s {
+                for x in x..x+s {
+                    next += grid[300 * (y-1) + (x-1)];
+                }
+            }
+            
+            if next > max {
+                max = next;
+                max_pos = (x, y);
+            }
+        }
     }
-}
 
-fn distance_from_center(starfield: &[Star]) -> u64 {
-    let center = starfield.iter().fold((0, 0), |acc, next| {
-        (acc.0 + next.p.0, acc.1 + next.p.1)
-    });
-    let count = starfield.len() as i64;
-    let center = (center.0 / count, center.1 / count);
-
-    let mut distance = starfield.iter().fold(0, |acc, star| {
-        acc + star.distance_from(center)
-    });
-
-    distance
+    (max_pos.0, max_pos.1, max)
 }
 
 fn main() {
     let demo = include_str!("../demo.txt");
     let input = include_str!("../input.txt");
     
-    let mut starfield: Vec<Star> = input.lines().filter_map(|l| {
-        s!("position=<{},{}> velocity=<{},{}>" <- l).ok()
-    }).collect();
-
-    let mut distance = distance_from_center(&starfield);
+    let input = 9435;
+    assert_eq!(power_level(3, 5, 8), 4);
     
-    for i in 0.. {
-        for s in &mut starfield {
-            s.step();
+    println!("p1: {:?}", grid_size(3, input));
+
+    let mut max = 0;
+    let mut answer = (0, 0, 0);
+
+    for size in 1..300 {
+        let (new_x, new_y, new_max) = grid_size(size, input);
+        if new_max > max {
+            max = new_max;
+            answer = (new_x, new_y, size);
+
+            println!("p2: {:?}", answer);
         }
 
-        let new_dist = distance_from_center(&starfield);
-
-        if distance > new_dist {
-            distance = new_dist;
-        } else {
-            dbg!(i);
-            for s in &mut starfield {
-                s.p.0 -= s.v.0;
-                s.p.1 -= s.v.1;
-            }
-            
-            break;
-        }
+        //println!("{}", size);
     }
-
-    let min_x = starfield.iter().map(|s| s.p.0).min().unwrap();
-    let max_x = starfield.iter().map(|s| s.p.0).max().unwrap();
-    let min_y = starfield.iter().map(|s| s.p.1).min().unwrap();
-    let max_y = starfield.iter().map(|s| s.p.1).max().unwrap();
-
-    let x = (max_x - min_x) as usize + 1;
-    let y = (max_y - min_y) as usize + 1;
-
-    let mut display = vec![vec![' '; x]; y];
-
-    for i in starfield {
-        let y = (i.p.1 - min_y) as usize;
-        let x = (i.p.0 - min_x) as usize;
-
-        display[y][x] = 'x';
-    }
-
-    for y in display {
-        for x in y {
-            print!("{}", x);
-        }
-        println!("");
-    }
-
 }
