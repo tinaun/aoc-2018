@@ -3,69 +3,96 @@
 mod prelude;
 use self::prelude::*;
 
-fn power_level(x: u32, y: u32, id: u32) -> i32 {
-    let rid = x + 10;
-    let mut power = rid * y;
-    power += id;
-    power *= rid;
-    power /= 100;
-    power %= 10;
-
-    power as i32 - 5
-}
-
-fn grid_size(s: usize, id: u32) -> (usize, usize, i32) {
-    let mut grid = vec![0; 300 * 300];
-
-    for y in 1..=300 {
-        for x in 1..=300 {
-            grid[300 * (y-1) + (x-1)] = power_level(x as u32, y as u32, id);
-        }
-    }
-
-    let mut max = 0;
-    let mut max_pos = (0, 0);
-    
-    for y in 1..300-s {
-        for x in 1..300-s {
-            let mut next = 0;
-            for y in y..y+s {
-                for x in x..x+s {
-                    next += grid[300 * (y-1) + (x-1)];
-                }
-            }
-            
-            if next > max {
-                max = next;
-                max_pos = (x, y);
-            }
-        }
-    }
-
-    (max_pos.0, max_pos.1, max)
+#[derive(Debug, PartialEq)] 
+struct Rule {
+    spread: Vec<bool>,
+    out: bool,
 }
 
 fn main() {
     let demo = include_str!("../demo.txt");
     let input = include_str!("../input.txt");
     
-    let input = 9435;
-    assert_eq!(power_level(3, 5, 8), 4);
-    
-    println!("p1: {:?}", grid_size(3, input));
+    let mut lines = input.lines();
+    let mut grid = Map::new();
+    let mut rules = vec![];
+    //lines.next();
+    let inital = lines.next().unwrap();
+    lines.next();
+    for (i, ch) in (&inital[15..]).chars().enumerate() {
+        match ch {
+            '#' => { grid.insert(i as i32, true); },
+            _ => {},
+        }
+    }
 
-    let mut max = 0;
-    let mut answer = (0, 0, 0);
+    for l in lines {
+        let (spread, out): (String, char) = s!("{} => {}" <- l).unwrap();
 
-    for size in 1..300 {
-        let (new_x, new_y, new_max) = grid_size(size, input);
-        if new_max > max {
-            max = new_max;
-            answer = (new_x, new_y, size);
+        let spread: Vec<bool> = spread.chars().map(|ch| {
+            match ch {
+                '.' => false,
+                '#' => true,
+                _ => false,
+            }
+        }).collect();
 
-            println!("p2: {:?}", answer);
+        let out = match out {
+                '.' => false,
+                '#' => true,
+                _ => false,
+            };
+
+        rules.push(Rule {
+            spread,
+            out
+        })
+    }
+
+    for gens in 0..20 {
+        let mut next_grid = Map::new();
+        let min = grid.keys().min().cloned().unwrap();
+        let max = grid.keys().max().cloned().unwrap();
+
+        for idx in min-2 ..= max+2 {
+            let a = grid.get(&(idx-2)).cloned().unwrap_or(false);
+            let b = grid.get(&(idx-1)).cloned().unwrap_or(false);
+            let c = grid.get(&(idx)).cloned().unwrap_or(false);
+            let d = grid.get(&(idx+1)).cloned().unwrap_or(false);
+            let e = grid.get(&(idx+2)).cloned().unwrap_or(false);
+            let rule = [a, b, c, d, e];
+
+            for r in &rules {
+                if r.spread == &rule {
+                    next_grid.insert(idx, r.out);
+                }
+            }
+
+
         }
 
-        //println!("{}", size);
+        grid = next_grid;
+        
+        
     }
+        let sum = grid.iter().filter_map(|(idx, &pot)| if pot { Some(idx) } else { None }).sum::<i32>();
+        dbg!(sum);
+
+        let f = "###.##.##.#.....###.##.#..........###.##.##.##.##.##.##.##.##.#......###.##.##.##.##.##.##.##.##.##.##.##.##.##.##.##.#.......###.##.##.##.#";
+        let offset = 40;
+
+        let mut try_sum = 0;
+        for (i, ch) in f.chars().enumerate() {
+            if ch == '#' {
+                try_sum += (50_000_000_000 - offset) + i
+            }
+        }
+
+        println!("p2: {}", try_sum);
+
+    
+
+    
+
+    
 }
