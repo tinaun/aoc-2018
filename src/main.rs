@@ -3,261 +3,216 @@
 mod prelude;
 use self::prelude::*;
 
+type Word = usize;
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)] 
-struct Entity {
-    ty: EntityTy,
-    attack: i32,
-    hp: i32,
+
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+struct Machine {
+    regs: [Word; 4]
 }
 
-impl Entity {
-    fn goblin() -> Self {
-        Entity {
-            ty: EntityTy::Goblin,
-            attack: 3,
-            hp: 200,
+impl Machine {
+    fn addr(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] + self.regs[b]
+    }
+
+    fn addi(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] + b
+    }
+    
+    fn mulr(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] * self.regs[b]
+    }
+
+    fn muli(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] * b
+    }
+
+    fn banr(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] & self.regs[b]
+    }
+
+    fn bani(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] & b
+    }
+
+    fn borr(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] | self.regs[b]
+    }
+
+    fn bori(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] | b
+    }
+
+    fn setr(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = self.regs[a] 
+    }
+
+    fn seti(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = a
+    }
+
+    fn gtir(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = if a > self.regs[b] {
+            1
+        } else {
+            0
         }
     }
-    fn elf(attack: usize) -> Self {
-        Entity {
-            ty: EntityTy::Elf,
-            attack: 3,
-            hp: 200,
+
+    fn gtri(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = if self.regs[a] > b {
+            1
+        } else {
+            0
         }
     }
-    fn wall() -> Self {
-        Entity {
-            ty: EntityTy::Wall,
-            attack: -1,
-            hp: 100_000,
+
+    fn gtrr(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = if self.regs[a] > self.regs[b] {
+            1
+        } else {
+            0
         }
     }
-    fn nothing() -> Self {
-        Entity {
-            ty: EntityTy::Nothing,
-            attack: -1,
-            hp: 100_000,
+
+    fn eqir(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = if a == self.regs[b] {
+            1
+        } else {
+            0
         }
     }
+
+    fn eqri(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = if self.regs[a] == b {
+            1
+        } else {
+            0
+        }
+    }
+
+    fn eqrr(&mut self, a: Word, b: Word, c: Word) {
+        self.regs[c] = if self.regs[a] == self.regs[b] {
+            1
+        } else {
+            0
+        }
+    }
+
+    fn test_everything(&self, test: Machine, a: Word, b: Word, c: Word) -> Vec<usize> {
+        let mut tests = vec![self.clone(); 16];
+
+        tests[0].addr(a, b, c);
+        tests[1].addi(a, b, c);
+        tests[2].mulr(a, b, c);
+        tests[3].muli(a, b, c);
+        tests[4].banr(a, b, c);
+        tests[5].bani(a, b, c);
+        tests[6].borr(a, b, c);
+        tests[7].bori(a, b, c);
+        tests[8].setr(a, b, c);
+        tests[9].seti(a, b, c);
+        tests[10].gtir(a, b, c);
+        tests[11].gtri(a, b, c);
+        tests[12].gtrr(a, b, c);
+        tests[13].eqir(a, b, c);
+        tests[14].eqri(a, b, c);
+        tests[15].eqrr(a, b, c);
+
+        tests.into_iter().enumerate().filter_map(|(i, m)| {
+            if m == test {
+                Some(i)
+            } else {
+                None
+            }
+        }).collect()
+    }
+
+    fn dispatch(&mut self, op: Word, a: Word, b: Word, c: Word) {
+        match op {
+            0 => self.addr(a, b, c),
+            1 => self.addi(a, b, c),
+            2 => self.mulr(a, b, c),
+            3 => self.muli(a, b, c),
+            4 => self.banr(a, b, c),
+            5 => self.bani(a, b, c),
+            6 => self.borr(a, b, c),
+            7 => self.bori(a, b, c),
+            8 => self.setr(a, b, c),
+            9 => self.seti(a, b, c),
+            10 => self.gtir(a, b, c),
+            11 => self.gtri(a, b, c),
+            12 => self.gtrr(a, b, c),
+            13 => self.eqir(a, b, c),
+            14 => self.eqri(a, b, c),
+            15 => self.eqrr(a, b, c),
+            _ => {},
+        }
+    }
+    
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)] 
-enum EntityTy {
-    Goblin,
-    Elf,
-    Wall,
-    Nothing,
-}
-
-impl Display for Entity {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.ty {
-            EntityTy::Elf => write!(f, "E"),
-            EntityTy::Goblin => write!(f, "G"),
-            EntityTy::Wall => write!(f, "#"),
-            EntityTy::Nothing => write!(f, "."),
-        }
-    }
-}
-
-fn simulate(mut world: Map<(usize, usize), Entity>, elf_power: i32) -> (i32, i32, bool) {
-    let mut turns = 0;
-    for (_, elf) in world.iter_mut().filter(|(_, e)| e.ty == EntityTy::Elf) {
-        elf.attack = elf_power;
-    }
-    let mut dead_elves = false;
-
-
-    'game: loop {
-        let targets: Set<_> = world.iter()
-            .filter(|(&pos, e)| e.ty == EntityTy::Goblin || e.ty == EntityTy::Elf)
-            .map(|(&pos, e)| pos).collect();
-
-        for mut e in targets {
-            let mut current_entity = match world.remove(&e) {
-                Some(e) => e,
-                None => continue,
-            };
-
-            let mut other_targets: Set<_> = world.iter()
-            .filter(|(&pos, e)| e.ty == EntityTy::Goblin || e.ty == EntityTy::Elf)
-            .map(|(&pos, e)| pos).collect();
-
-            let mut valid_targets: Set<_> = other_targets
-                .into_iter()
-                .filter(|pos| world[pos].ty != current_entity.ty)
-                .collect();
-
-            if valid_targets.len() == 0 {
-                world.insert(e, current_entity);
-                break 'game;
-            }
-
-            //spots in range to targets
-            valid_targets = valid_targets
-                .into_iter()
-                .flat_map(|(x, y)| vec![(x+1, y),(x-1, y),(x, y+1),(x, y-1)])
-                .filter(|pos| world.get(pos).is_none())
-                .collect();
-
-            let mut current = None;
-
-            // pathfind
-            let mut used = Set::new();
-            let mut next = Set::new();
-            next.insert(e);
-            'target: loop {
-                if valid_targets.len() == 0 || next.len() == 0 {
-                    break;
-                }
-
-
-                if let Some(new_target) = valid_targets.intersection(&next).min_by_key(|pos| pos.0) {
-                    current = Some(*new_target);
-                    break 'target;
-                }
-
-                used.extend(next.clone());
-                next = next
-                    .into_iter()
-                    .flat_map(|(x, y)| vec![(x+1, y),(x-1, y),(x, y+1),(x, y-1)])
-                    .filter(|pos| world.get(pos).is_none() && !used.contains(pos))
-                    .collect();
-            }
-            
-
-            //dbg!(current);
-            if let Some(pos) = current {
-                let mut distance_set = Map::new();
-                distance_set.insert(pos, 0);
-
-                while !distance_set.contains_key(&e) {
-                    let next: Map<_,_> = distance_set
-                        .iter()
-                        .flat_map(|((x, y), i)| {
-                            let (x, y, i) = (*x, *y, *i);
-
-                            vec![((x+1, y), i+1),((x-1, y), i+1),((x, y+1), i+1),((x, y-1), i+1)]
-                        })
-                        .filter(|(pos, _)| world.get(pos).is_none() && !distance_set.contains_key(pos))
-                        .collect();
-
-                    distance_set.extend(next);
-                }
-
-                let neighbors = [(e.0+1, e.1),(e.0-1, e.1),(e.0, e.1+1),(e.0, e.1-1)];
-
-                // for x in distance_set.iter().filter(|(pos, _)| neighbors.contains(pos)) {
-                //     println!("{:?}", x);
-                // }
-
-                let next = distance_set.into_iter()
-                .filter(|(pos, _)| neighbors.contains(pos))
-                .min_by_key(|(pos, _)| pos.0);
-
-                if let Some(next) = next {
-                    //println!("target {:?}, next {:?}", current, next.0);
-                    
-                    e = next.0;
-                }
-            }
-
-
-            //entity is done moving
-            world.insert(e, current_entity);
-            
-            let attack = world.get(&e).unwrap().attack;
-            let ty = world.get(&e).unwrap().ty;
-
-            //select attacker
-            let mut min_hp = 10_000;
-            let mut target = None;
-            for t in &[(e.0-1, e.1),(e.0, e.1-1),(e.0, e.1+1),(e.0+1, e.1)] {
-                let hp = world.get(t).unwrap_or(&Entity::nothing()).hp;
-                let en_ty = world.get(t).unwrap_or(&Entity::nothing()).ty;
-                if hp < min_hp && en_ty != ty {
-                    min_hp = hp;
-                    target = Some(*t);
-                }
-            }
-
-            let mut died = None;
-            if let Some(t) = target {
-                world.get_mut(&t).unwrap().hp -= attack;
-                //println!("attack! {:?} attacked {:?} for 3 damage", e, t);
-
-                if world.get_mut(&t).unwrap().hp < 0 {
-                    died = Some(t);
-                }
-            }
-
-            if let Some(t) = died {
-                if let EntityTy::Elf = world.get(&t).unwrap_or(&Entity::nothing()).ty {
-                    //println!("elves are over!!");
-                    //return (0, 0);
-                    dead_elves = true;
-                }
-                //println!("{:?} died", t);
-                world.remove(&t);
-            }
-
-            
-        }
-
-        // for y in 0..10 {
-        //     for x in 0..10 {
-        //         print!("{}", world.get(&(y, x)).unwrap_or(&Entity::nothing()));
-        //     }
-        //     println!();
-        // }
-
-        // let total_hp = world.iter()
-        //     .filter(|(&pos, e)| e.ty == EntityTy::Goblin || e.ty == EntityTy::Elf)
-        //     .fold(0, |acc, (_, elem)| acc + dbg!(elem.hp));
-
-        // dbg!(total_hp);
-
-        turns += 1;
-    }
-
-    let total_hp = world.iter()
-            .filter(|(&pos, e)| e.ty == EntityTy::Goblin || e.ty == EntityTy::Elf)
-            .fold(0, |acc, (_, elem)| acc + elem.hp);
-
-    dbg!(total_hp);
-
-    (turns, total_hp, dead_elves)
-}
 
 fn main() {
     let demo = include_str!("../demo.txt");
     let input = include_str!("../input.txt");
 
-    let mut entities = Map::new();
+    let input = input.lines().collect::<Vec<_>>();
+    let mut chunks = input.chunks(4).into_iter();
+
+    let mut p1 = 0;
+    let mut values: Map<usize, Set<usize>> = Map::new();
+    while let Some([before, i, after, _]) = chunks.next() {
+        let before: Machine = match s!("Before: [{}, {}, {}, {}]" <- before) {
+            Ok(b) => b,
+            _ => break,
+        };
+
+        let [n, a, b, c]: [Word; 4] = scan(i).unwrap();
+        let result: Machine = serde_scan::from_str_skipping("After:[,]", after).unwrap();
+
+        let results = before.test_everything(result, a, b, c);
+        if results.len() >= 3 {
+            p1 += 1;
+        }
+
+        values.entry(n).or_insert_with(|| Set::new()).extend(results);
+    }
+
+    dbg!(p1);
+    let mut f = Map::new();
+
+
+    while !values.is_empty() {
+        let mut next = None;
+        for (&i, v) in &values {
+            if v.len() == 1 {
+                next = v.iter().next().cloned();
+                f.insert(i, next.unwrap());
+            }
+        }
+
+        for (_, v) in &mut values {
+            if let Some(n) = next {
+                v.remove(&n);
+            }
+        }
+
+        values = values.into_iter().filter(|(_, v)| !v.is_empty()).collect();
+    }
+
+    let input = include_str!("../input-2.txt");
+    let mut runner = Machine {
+        regs: [0; 4]
+    };
+
+    for i in input.lines() {
+        let [n, a, b, c]: [Word; 4] = scan(i).unwrap();
+
+        runner.dispatch(f[&n], a, b, c);
+    }
     
-    for (y, l) in input.lines().enumerate() {
-        for (x, ch) in l.chars().enumerate() {
-            let e = match ch {
-                '#' => Entity::wall(),
-                'G' => Entity::goblin(),
-                'E' => Entity::elf(3),
-                _ => continue,
-            };
-
-            entities.insert((y, x), e);
-        }
-    }
-
-    let (rounds, hp, _) = simulate(entities.clone(), 3);
-
-    println!("p1: {}", rounds * hp);
-
-    for power in 3.. {
-        if let (rounds, hp, false) = simulate(entities.clone(), power) {
-            println!("p2: {}", rounds * hp);
-            break;
-        }
-    }
+    println!("p2: {}", runner.regs[0]);
 
 }
