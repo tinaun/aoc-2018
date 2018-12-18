@@ -5,8 +5,22 @@ authors = ["tinaun <tinagma@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-itertools = "0.7"
+itertools = "0.8"
 permutohedron = "0.2"
 serde_scan = "0.3"
 serde = "1.0"
 serde_derive = "1.0"
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "advent"
+harness = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "advent"
+path = "src/bin.rs"

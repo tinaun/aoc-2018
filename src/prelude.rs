@@ -7,7 +7,7 @@ pub use std::collections::BTreeMap as Map;
 use std::collections::VecDeque;
 
 pub use std::io;
-pub use std::fmt::{self, Display};
+pub use std::fmt::{self, Display, Debug};
 
 pub use serde_derive::{Serialize, Deserialize};
 
