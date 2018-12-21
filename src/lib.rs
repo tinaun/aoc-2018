@@ -3,179 +3,152 @@
 mod prelude;
 use self::prelude::*;
 
-type Word = usize;
-
-
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
-struct Machine {
-    regs: [Word; 6]
-}
-
-impl Machine {
-    fn addr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] + self.regs[b]
-    }
-
-    fn addi(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] + b
-    }
+fn find_max(mut input: &str, mut count: usize) -> usize {
     
-    fn mulr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] * self.regs[b]
-    }
+    
+    while input.len() > 0 {
+        let mut next = &input[1..];
 
-    fn muli(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] * b
-    }
+        match &input[..1] {
+            "$" | "^" => {},
+            "(" => {
+                
+                let mut depth = 1;
+                let mut end = 1;
+                let mut splits = vec![0];
 
-    fn banr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] & self.regs[b]
-    }
+                for (i,x) in next.chars().enumerate() {
+                    match x {
+                        '(' => depth += 1,
+                        '|' if depth == 1 => {
+                            splits.push(i);
+                        },
+                        ')' => {
+                            if depth == 1 {
+                                end = i;
+                                splits.push(i);
+                            } else {
+                                depth -= 1;
+                            }
+                        },
+                        _ => {},
+                    }
+                }
 
-    fn bani(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] & b
-    }
+                let mut counts = vec![];
+                for (start, end) in splits.into_iter().tuple_windows() {
+                    //println!("{}", &next[start..end]);
+                    counts.push(find_max(&next[start..end], 0));
+                }
 
-    fn borr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] | self.regs[b]
-    }
+                if !counts.contains(&0) {
+                    count += counts.into_iter().max().unwrap_or(0);
+                }
 
-    fn bori(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] | b
-    }
-
-    fn setr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] 
-    }
-
-    fn seti(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = a
-    }
-
-    fn gtir(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if a > self.regs[b] {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn gtri(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if self.regs[a] > b {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn gtrr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if self.regs[a] > self.regs[b] {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn eqir(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if a == self.regs[b] {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn eqri(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if self.regs[a] == b {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn eqrr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if self.regs[a] == self.regs[b] {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn test_everything(&self, test: Machine, a: Word, b: Word, c: Word) -> Vec<usize> {
-        let mut tests = vec![self.clone(); 16];
-
-        tests[0].addr(a, b, c);
-        tests[1].addi(a, b, c);
-        tests[2].mulr(a, b, c);
-        tests[3].muli(a, b, c);
-        tests[4].banr(a, b, c);
-        tests[5].bani(a, b, c);
-        tests[6].borr(a, b, c);
-        tests[7].bori(a, b, c);
-        tests[8].setr(a, b, c);
-        tests[9].seti(a, b, c);
-        tests[10].gtir(a, b, c);
-        tests[11].gtri(a, b, c);
-        tests[12].gtrr(a, b, c);
-        tests[13].eqir(a, b, c);
-        tests[14].eqri(a, b, c);
-        tests[15].eqrr(a, b, c);
-
-        tests.into_iter().enumerate().filter_map(|(i, m)| {
-            if m == test {
-                Some(i)
-            } else {
-                None
-            }
-        }).collect()
-    }
-
-    fn dispatch(&mut self, op: Word, a: Word, b: Word, c: Word) {
-        match op {
-            0 => self.addr(a, b, c),
-            1 => self.addi(a, b, c),
-            2 => self.mulr(a, b, c),
-            3 => self.muli(a, b, c),
-            4 => self.banr(a, b, c),
-            5 => self.bani(a, b, c),
-            6 => self.borr(a, b, c),
-            7 => self.bori(a, b, c),
-            8 => self.setr(a, b, c),
-            9 => self.seti(a, b, c),
-            10 => self.gtir(a, b, c),
-            11 => self.gtri(a, b, c),
-            12 => self.gtrr(a, b, c),
-            13 => self.eqir(a, b, c),
-            14 => self.eqri(a, b, c),
-            15 => self.eqrr(a, b, c),
+                next = &next[end..];
+                
+            },
+            "N" | "E" | "W" | "S" => count += 1,
             _ => {},
         }
+
+
+        input = next;
+        
     }
 
-    fn dispatch_instr(&mut self, op: &str, a: Word, b: Word, c: Word) {
-        match op {
-            "addr" => self.addr(a, b, c),
-            "addi" => self.addi(a, b, c),
-            "mulr" => self.mulr(a, b, c),
-            "muli" => self.muli(a, b, c),
-            "banr" => self.banr(a, b, c),
-            "bani" => self.bani(a, b, c),
-            "borr" => self.borr(a, b, c),
-            "bori" => self.bori(a, b, c),
-            "setr" => self.setr(a, b, c),
-            "seti" => self.seti(a, b, c),
-            "gtir" => self.gtir(a, b, c),
-            "gtri" => self.gtri(a, b, c),
-            "gtrr" => self.gtrr(a, b, c),
-            "eqir" => self.eqir(a, b, c),
-            "eqri" => self.eqri(a, b, c),
-            "eqrr" => self.eqrr(a, b, c),
-            _ => {},
-        }
-    }
-    
+    count
 }
 
-type Instr = (String, Word, Word, Word);
+fn flood_fill(mut input: &str, mut count: isize, world: &mut Map<(isize, isize), isize>, mut cursor: (isize, isize) )
+    -> isize
+{
+    
+    
+    while input.len() > 0 {
+        let mut next = &input[1..];
+
+        match &input[..1] {
+            "$" | "^" => {},
+            "(" => {
+                
+                let mut depth = 1;
+                let mut end = 1;
+                let mut splits = vec![0];
+
+                for (i,x) in next.chars().enumerate() {
+                    match x {
+                        '(' => depth += 1,
+                        '|' if depth == 1 => {
+                            splits.push(i);
+                        },
+                        ')' => {
+                            if depth == 1 {
+                                end = i;
+                                splits.push(i);
+                            } else {
+                                depth -= 1;
+                            }
+                        },
+                        _ => {},
+                    }
+                }
+
+                let mut counts = vec![];
+                for (start, end) in splits.into_iter().tuple_windows() {
+                    //println!("{}", &next[start..end]);
+                    counts.push(flood_fill(&next[start..end], count, world, cursor));
+                }
+
+                if !counts.contains(&count) {
+                    count = counts.into_iter().max().unwrap_or(0);
+                }
+
+                next = &next[end..];
+                
+            },
+            "N" => {
+                count += 1;
+                cursor.1 -= 1;
+                if !world.contains_key(&cursor) {
+                    world.insert(cursor, count);
+                }
+
+            },
+            "E" => {
+                count += 1;
+                cursor.0 += 1;
+                if !world.contains_key(&cursor) {
+                    world.insert(cursor, count);
+                }
+
+            },
+            "W" => {
+                count += 1;
+                cursor.0 -= 1;
+                if !world.contains_key(&cursor) {
+                    world.insert(cursor, count);
+                }
+
+            },
+            "S" => {
+                count += 1;
+                cursor.1 += 1;
+                if !world.contains_key(&cursor) {
+                    world.insert(cursor, count);
+                }
+
+            },
+            _ => {},
+        }
+
+
+        input = next;
+        
+    }
+
+    count
+}
 
 pub fn advent() -> (impl Debug, impl Debug) {
     let demo = include_str!("../demo.txt");
@@ -183,57 +156,61 @@ pub fn advent() -> (impl Debug, impl Debug) {
     let mut p1 = 0;
     let mut p2 = 0;
 
-    let mut runner = Machine {
-        regs: [0,0,0,0,0,0]
-    };
     
 
-    let mut prog = vec![];
-    let mut ip = 0;
-    let mut ip_reg: Option<Word> = None;
+    let p1 = find_max(input, 0);
 
-    for i in input.lines() {
-        if let Ok(ip) = s!("#ip {}" <- i) {
-            ip_reg = Some(ip);
-            continue;
+    let mut world = Map::new();
+    world.insert((0, 0), 0);
+
+    let mut count = flood_fill(input, 0, &mut world, (0, 0));
+
+    let img_data = &mut vec![0; 240 * 240]; 
+
+    for y in 1..119 {
+        for x in 1..119 {
+            let mut pos = (x as isize - 60, y as isize - 60);
+
+            if let Some(&current) = world.get(&pos) {
+                pos.0 -= 1;
+                let mut right = *world.get(&pos).unwrap_or(&0);
+                pos.0 += 2;
+                let mut left = *world.get(&pos).unwrap_or(&0);
+                pos.1 -= 1; pos.0 -= 1;
+                let mut top = *world.get(&pos).unwrap_or(&0);
+                pos.1 += 2; 
+                let mut bottom = *world.get(&pos).unwrap_or(&0);
+
+                let v = 255 - ((current as f64 / (p1 as f64) * 255.0) as u8);
+                
+                img_data[(y*2+1) * 240 + (x*2+1)] = v;
+
+                if (current - right).abs() == 1 {
+                   img_data[(y*2+1) * 240 + (x*2)] = v;
+                } 
+
+                if (current - top).abs() == 1 {
+                     img_data[(y*2) * 240 + (x*2+1)] = v;
+                } 
+
+                if (current - left).abs() == 1 {
+                     img_data[(y*2+1) * 240 + (x*2+2)] = v;
+                } 
+
+                if (current - bottom).abs() == 1 {
+                     img_data[(y*2+2) * 240 + (x*2+1)] = v;
+                } 
+            }
+            
         }
-
-        let i: Instr = scan(i).unwrap();
-
-        prog.push(i);
     }
-    
-    let ip_reg = ip_reg.unwrap();
-    let mut last_0 = 0;
-    let mut count = 0;
-    while ip < prog.len() {
-        runner.regs[ip_reg] = ip;
-        
-        let (w, a, b, c) = prog.get(ip).unwrap();
-        runner.dispatch_instr(w, *a, *b, *c);
 
-        ip = runner.regs[ip_reg];
-        ip += 1;
-        count += 1;
-        if runner.regs[0] > last_0 {
-            last_0 = runner.regs[0];
-            println!("{} ip={} {:?}", count, ip, runner.regs);
-        }
+    use std::fs::File;
+    let f = File::create("output.png").unwrap();
+    let encoder = image::png::PNGEncoder::new(f);
+    encoder.encode(&img_data, 240, 240, image::ColorType::Gray(8));
 
-        if runner.regs[0] > runner.regs[5] {
-            //println!("{} ip={} {:?}", count, ip, runner.regs);
-        }
-        
-    }
-
-    p1 = runner.regs[0];
-
-    for i in 1..=10551355 {
-        if 10551355 % i == 0 {
-            dbg!(i);
-            p2 += i;
-        }
-    }
+    let p2 = world.values().filter(|&&v| v >= 1000).count();
 
     (p1, p2)
 }
