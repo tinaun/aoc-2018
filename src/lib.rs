@@ -3,179 +3,55 @@
 mod prelude;
 use self::prelude::*;
 
-type Word = usize;
+const DEPTH: usize = 8787;
+const TARGET: (usize, usize) = (10, 725);
 
-
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
-struct Machine {
-    regs: [Word; 6]
-}
-
-impl Machine {
-    fn addr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] + self.regs[b]
-    }
-
-    fn addi(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] + b
+fn geo_index(x: usize, y: usize, world: &mut Map<(usize, usize), usize>) -> usize {
+    if let Some(&value) = world.get(&(x,y)) {
+        return value;
     }
     
-    fn mulr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] * self.regs[b]
-    }
+    let value = if (x, y) == (0, 0) {
+        0
+    } else if (x, y) == TARGET {
+        0
+    } else if x == 0 {
+        y * 48271
+    } else if y == 0 {
+        x * 16807
+    } else {
+        erosion_level(x-1, y, world) * erosion_level(x, y - 1, world)
+    };
 
-    fn muli(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] * b
-    }
+    world.insert((x, y), value);
 
-    fn banr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] & self.regs[b]
-    }
-
-    fn bani(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] & b
-    }
-
-    fn borr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] | self.regs[b]
-    }
-
-    fn bori(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] | b
-    }
-
-    fn setr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = self.regs[a] 
-    }
-
-    fn seti(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = a
-    }
-
-    fn gtir(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if a > self.regs[b] {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn gtri(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if self.regs[a] > b {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn gtrr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if self.regs[a] > self.regs[b] {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn eqir(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if a == self.regs[b] {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn eqri(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if self.regs[a] == b {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn eqrr(&mut self, a: Word, b: Word, c: Word) {
-        self.regs[c] = if self.regs[a] == self.regs[b] {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn test_everything(&self, test: Machine, a: Word, b: Word, c: Word) -> Vec<usize> {
-        let mut tests = vec![self.clone(); 16];
-
-        tests[0].addr(a, b, c);
-        tests[1].addi(a, b, c);
-        tests[2].mulr(a, b, c);
-        tests[3].muli(a, b, c);
-        tests[4].banr(a, b, c);
-        tests[5].bani(a, b, c);
-        tests[6].borr(a, b, c);
-        tests[7].bori(a, b, c);
-        tests[8].setr(a, b, c);
-        tests[9].seti(a, b, c);
-        tests[10].gtir(a, b, c);
-        tests[11].gtri(a, b, c);
-        tests[12].gtrr(a, b, c);
-        tests[13].eqir(a, b, c);
-        tests[14].eqri(a, b, c);
-        tests[15].eqrr(a, b, c);
-
-        tests.into_iter().enumerate().filter_map(|(i, m)| {
-            if m == test {
-                Some(i)
-            } else {
-                None
-            }
-        }).collect()
-    }
-
-    fn dispatch(&mut self, op: Word, a: Word, b: Word, c: Word) {
-        match op {
-            0 => self.addr(a, b, c),
-            1 => self.addi(a, b, c),
-            2 => self.mulr(a, b, c),
-            3 => self.muli(a, b, c),
-            4 => self.banr(a, b, c),
-            5 => self.bani(a, b, c),
-            6 => self.borr(a, b, c),
-            7 => self.bori(a, b, c),
-            8 => self.setr(a, b, c),
-            9 => self.seti(a, b, c),
-            10 => self.gtir(a, b, c),
-            11 => self.gtri(a, b, c),
-            12 => self.gtrr(a, b, c),
-            13 => self.eqir(a, b, c),
-            14 => self.eqri(a, b, c),
-            15 => self.eqrr(a, b, c),
-            _ => {},
-        }
-    }
-
-    fn dispatch_instr(&mut self, op: &str, a: Word, b: Word, c: Word) {
-        match op {
-            "addr" => self.addr(a, b, c),
-            "addi" => self.addi(a, b, c),
-            "mulr" => self.mulr(a, b, c),
-            "muli" => self.muli(a, b, c),
-            "banr" => self.banr(a, b, c),
-            "bani" => self.bani(a, b, c),
-            "borr" => self.borr(a, b, c),
-            "bori" => self.bori(a, b, c),
-            "setr" => self.setr(a, b, c),
-            "seti" => self.seti(a, b, c),
-            "gtir" => self.gtir(a, b, c),
-            "gtri" => self.gtri(a, b, c),
-            "gtrr" => self.gtrr(a, b, c),
-            "eqir" => self.eqir(a, b, c),
-            "eqri" => self.eqri(a, b, c),
-            "eqrr" => self.eqrr(a, b, c),
-            _ => {},
-        }
-    }
-    
+    value
 }
 
-type Instr = (String, Word, Word, Word);
+fn erosion_level(x: usize, y: usize, world: &mut Map<(usize, usize), usize>) -> usize {
+    (geo_index(x, y, world) + DEPTH) % 20183
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+enum Cave {
+    Rocky,
+    Wet,
+    Narrow,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum Tool {
+    Gear,
+    Torch,
+    None,
+}
+
+fn man_dist(a: (usize, usize), b: (usize, usize)) -> usize {
+    let man = (a.0 as isize - b.0 as isize).abs() + (a.1 as isize - b.1 as isize).abs();
+
+    man as usize
+}
+
 
 pub fn advent() -> (impl Debug, impl Debug) {
     let demo = include_str!("../demo.txt");
@@ -183,65 +59,90 @@ pub fn advent() -> (impl Debug, impl Debug) {
     let mut p1 = 0;
     let mut p2 = 0;
 
-    let mut runner = Machine {
-        regs: [0,0,0,0,0,0]
-    };
-    
+    let mut world = Map::new();
 
-    let mut prog = vec![];
-    let mut ip = 0;
-    let mut ip_reg: Option<Word> = None;
-
-    for i in input.lines() {
-        if let Ok(ip) = s!("#ip {}" <- i) {
-            ip_reg = Some(ip);
-            continue;
+    for y in 0..=TARGET.1 {
+        for x in 0..=TARGET.0 {
+            let ero = (geo_index(x, y, &mut world) + DEPTH) % 20183;
+            p1 += ero % 3;
         }
-
-        let i: Instr = scan(i).unwrap();
-
-        prog.push(i);
     }
-    
-    let ip_reg = ip_reg.unwrap();
-    let mut last_0 = 0;
-    let mut count = 0;
-    let mut counts = Set::new();
-    let mut prev = 0;
-    while ip < prog.len() {
-        runner.regs[ip_reg] = ip;
-        
-        let (w, a, b, c) = prog.get(ip).unwrap();
-        runner.dispatch_instr(w, *a, *b, *c);
 
-        ip = runner.regs[ip_reg];
-        ip += 1;
-        count += 1;
-        // if runner.regs[0] > last_0 {
-        //     last_0 = runner.regs[0];
-        //     println!("{} ip={} {:?}", count, ip, runner.regs);
-        // }
+    let mut cave_system = vec![Cave::Rocky; 1000 * 1000];
 
-        if ip == 18 {
-            let desired = runner.regs[3] / 256;
-            runner.regs[4] = desired;
+    for y in 0..1000 {
+        for x in 0..1000 {
+            let ero = (geo_index(x, y, &mut world) + DEPTH) % 20183;
+            cave_system[y * 1000 + x] = match ero % 3 {
+                1 => Cave::Wet,
+                2 => Cave::Narrow,
+                _ => {
+                    continue;
+                },
+            };
         }
-        
-
-        if ip == 29 {
-            if prev == 0 {
-                p1 = runner.regs[5];
-            }
-
-            if !counts.insert(runner.regs[5]) { 
-                p2 = prev;
-                break;
-            }
-            prev = runner.regs[5];
-        }
-        
-        
     }
+    println!("starting path");
+    let mut visited = Map::new();
+    let mut dist = Map::new();
+    dist.insert((0, 0, Tool::Torch), 0);
+
+    let mut current = (0, 0, Tool::Torch);
+
+    while !visited.contains_key(&(TARGET.0, TARGET.1, Tool::Torch)) ||
+                !visited.contains_key(&(TARGET.0, TARGET.1, Tool::Gear)) {
+        //dbg!(current);
+        let (x, y, tool) = current;
+        let mut possible_nodes = vec![(x + 1, y), (x, y+1)];
+        if x > 0 {
+            possible_nodes.push((x - 1, y));
+        }
+        if y > 0 {
+            possible_nodes.push((x, y - 1));
+        }
+        let base = *dist.get(&current).unwrap();
+        
+
+        for node in possible_nodes {
+            if !visited.contains_key(&(node.0, node.1, tool)) {
+                let next_cave = cave_system[node.1 * 1000 + node.0];
+                let prev_cave = cave_system[y * 1000 + x];
+
+                let next_tool = match (prev_cave, next_cave) {
+                    (Cave::Rocky, Cave::Wet) => Tool::Gear,
+                    (Cave::Wet, Cave::Rocky) => Tool::Gear,
+                    (Cave::Rocky, Cave::Narrow) => Tool::Torch,
+                    (Cave::Narrow, Cave::Rocky) => Tool::Torch,
+                    (Cave::Narrow, Cave::Wet) => Tool::None,
+                    (Cave::Wet, Cave::Narrow) => Tool::None,
+                    _ => tool,
+                };
+
+                let dv = if tool == next_tool {
+                    1
+                } else {
+                    8
+                };
+
+                let entry = dist.entry((node.0, node.1, next_tool)).or_insert((base + dv));
+                if *entry > base + dv {
+                    *entry = base + dv;
+                }
+            }
+        }
+
+        visited.insert(current, (base, tool));
+        dist.remove(&current);
+        current = *dist.iter().min_by_key(|(k, &v)| v + man_dist((k.0, k.1), TARGET)).unwrap().0;
+    }
+
+    // this is fragile and only works on my input, but i can't be bothered to change it
+    let (mut p2, tool) = visited.get(&(TARGET.0, TARGET.1, Tool::Torch)).unwrap();
+
+    if *tool != Tool::Torch {
+        p2 += 7;
+    }
+
 
     (p1, p2)
 }
